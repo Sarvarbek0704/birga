@@ -2,6 +2,12 @@
 
 <p align="center"><b>Many people, one document, no conflicts.</b> A real-time collaborative editor built on CRDTs — including a CRDT written from scratch.</p>
 
+<p align="center">
+  <a href="https://github.com/Sarvarbek0704/birga/actions/workflows/ci.yml"><img src="https://github.com/Sarvarbek0704/birga/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/tests-61%20passing-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT">
+</p>
+
 ---
 
 Birga is a collaborative editor where several people edit the same document at once — live cursors,
@@ -31,30 +37,68 @@ junior portfolio carries.
 
 ## Stack
 
-TypeScript · a hand-written CRDT core (own package) · WebSocket sync server (Node) · Next.js editor
-(TipTap/ProseMirror) · Redis for presence/fan-out · Postgres for document snapshots.
+TypeScript · a hand-written CRDT core (own package) · WebSocket sync server (Node, `ws`) · Next.js +
+TipTap editor · Yjs for the rich-text path · Redis for presence/fan-out · Postgres for snapshots.
 
-## Status
+## Architecture
 
-🛠️ **In progress.** Full technical spec: [`docs/TZ.md`](docs/TZ.md).
+```mermaid
+graph LR
+  A[browser A] -- ops + awareness --> S[["@birga/server<br/>WebSocket relay"]]
+  B[browser B] -- ops + awareness --> S
+  S --- PG[(Postgres<br/>snapshots + op log)]
+  S --- R[(Redis<br/>pub/sub + presence)]
+```
 
-| package | what it is | state |
-| ------- | ---------- | ----- |
-| [`@birga/crdt`](packages/crdt) | from-scratch RGA sequence CRDT + convergence property tests | ✅ 16 tests |
-| [`@birga/protocol`](packages/protocol) | CRDT-agnostic wire protocol | ✅ |
-| [`@birga/server`](apps/server) | WS sync server · Redis fan-out · Postgres persistence + compaction · REST API (auth, docs, share links) | ✅ 29 tests |
-| [`@birga/client`](packages/client) | offline-first sync engine (CRDT ⇆ protocol) | ✅ 5 tests |
-| [`@birga/web`](apps/web) | Next.js editor — plain text (`@birga/crdt`) + rich text (Yjs) · doc list · sharing | ✅ builds |
+Each browser runs an editor bound to a CRDT — the **from-scratch `@birga/crdt`**
+for plain-text mode, **Yjs** for rich text — persists locally to **IndexedDB**
+(offline-first), and syncs ops through a CRDT-agnostic relay that stores them and
+fans out across instances.
+
+## Quickstart
 
 ```bash
 pnpm install
-pnpm -r build && pnpm -r test    # 50 tests green
+pnpm build && pnpm test          # 61 tests green (incl. the CRDT property suite)
+
+# run the app (builds libs, then server + web in parallel)
+pnpm dev                         # web on :3000, sync server on :8080
 ```
 
-Every phase of the spec's MVP scope is implemented: from-scratch CRDT, sync
-server, editor (both CRDT paths), persistence + compaction, and documents with
-guest auth + share links. Remaining polish: real accounts (guest identities
-today) and richer conflict-free rich-text schemas.
+Open <http://localhost:3000>, create a document, open the same URL in a second
+window, and type in both — including with one window offline. They converge.
+
+**Durable / multi-instance (optional):**
+
+```bash
+pnpm db:up                       # Postgres + Redis via docker compose
+DATABASE_URL=postgres://birga:birga@localhost:5432/birga \
+REDIS_URL=redis://localhost:6379 \
+  pnpm dev:server                # persistence, REST API, fan-out
+```
+
+## Status
+
+**Every phase of the spec's MVP scope is implemented, tested, and CI-green.**
+Full technical spec: [`docs/TZ.md`](docs/TZ.md).
+
+| package | what it is | tests |
+| ------- | ---------- | ----- |
+| [`@birga/crdt`](packages/crdt) | from-scratch RGA sequence CRDT + convergence property suite | 16 |
+| [`@birga/protocol`](packages/protocol) | CRDT-agnostic wire protocol | — |
+| [`@birga/server`](apps/server) | WS relay · Redis fan-out · Postgres persistence + auto-compaction · REST API (auth, docs, share links) · opt-in access control | 39 |
+| [`@birga/client`](packages/client) | offline-first sync engine (CRDT ⇆ protocol) · reconnect · rollback | 6 |
+| [`@birga/web`](apps/web) | Next.js editor — plain (`@birga/crdt`) + rich (Yjs) · presence · doc list · sharing | build |
+
+**How it maps to the spec's Definition of Done (§9):** the CRDT converges under
+thousands of randomised interleavings (CI-green); two-window live edit and
+offline-edit-then-reconnect converge; live cursors + presence; late joiners load
+from a snapshot on long docs (periodic compaction); and the README explains
+**why** the CRDT converges with a diagram — see the portfolio write-up,
+[**docs/CRDT.md**](docs/CRDT.md).
+
+Remaining polish (beyond the spec): real accounts (guest identities today) and a
+richer rich-text schema.
 
 ## License
 

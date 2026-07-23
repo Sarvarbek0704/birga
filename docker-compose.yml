@@ -1,0 +1,32 @@
+# Local infrastructure for the optional durable/multi-instance paths.
+# The single-instance server needs neither of these (in-memory store).
+#
+#   docker compose up -d
+#   DATABASE_URL=postgres://birga:birga@localhost:5432/birga \
+#   REDIS_URL=redis://localhost:6379 \
+#   pnpm --filter @birga/server dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: birga
+      POSTGRES_PASSWORD: birga
+      POSTGRES_DB: birga
+    ports:
+      - "5432:5432"
+    volumes:
+      - birga-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U birga"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  birga-pg:

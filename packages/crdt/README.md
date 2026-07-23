@@ -39,6 +39,23 @@ The id counter is a **Lamport clock**: each replica keeps it ahead of the highes
 counter it has seen, so ids issued after observing an op sort after it. The
 `replica` component makes every id unique, even under concurrency.
 
+Two replicas concurrently inserting after the same character both build this tree
+and both read it the same way (siblings ordered by id, descending):
+
+```mermaid
+graph TD
+  ROOT["· ROOT"] --> H["H · 1@a"]
+  H --> e["e · 2@a"]
+  e --> B["l · 5@ben"]
+  e --> A["l · 5@ada"]
+  e --> l["l · 3@a"]
+  l --> o["o · 4@a"]
+```
+
+Pre-order traversal with descending sibling order (`5@ben` before `5@ada` before
+`3@a`) yields the same string on every replica — the whole point. The full worked
+example is in [docs/CRDT.md](../../docs/CRDT.md).
+
 ## Why it converges
 
 The entire state is three **order-insensitive** structures:
