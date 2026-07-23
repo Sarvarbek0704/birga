@@ -58,7 +58,20 @@ async function main(): Promise<void> {
     console.log(`[birga] Redis fan-out enabled (${redisUrl})`);
   }
 
-  const server = await startServer({ port, host, store, fanout, authorize: authorize ?? undefined });
+  // Automatic op-log compaction for the plain-text (RGA) path; rich-text is skipped.
+  const { rgaCompactor } = await import("./compactor.js");
+  const server = await startServer({
+    port,
+    host,
+    store,
+    fanout,
+    authorize: authorize ?? undefined,
+    compaction: {
+      intervalMs: Number(process.env["COMPACTION_INTERVAL_MS"] ?? 60_000),
+      minOps: Number(process.env["COMPACTION_MIN_OPS"] ?? 200),
+      build: rgaCompactor,
+    },
+  });
   console.log(`[birga] sync server listening on ws://${host ?? "localhost"}:${server.port}`);
 
   const shutdown = async (): Promise<void> => {

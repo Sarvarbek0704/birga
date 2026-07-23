@@ -22,8 +22,18 @@ export interface DocStore {
   head(docId: string): Promise<number>;
   loadSnapshot(docId: string): Promise<SnapshotRecord | null>;
   saveSnapshot(docId: string, version: number, snapshot: unknown): Promise<void>;
+  /**
+   * Fold the ops after the current snapshot into a new one and prune them.
+   * `build` is CRDT-aware and returns the new snapshot payload, or `null` to
+   * skip (e.g. an unrecognised document type). Returns the version compacted
+   * through (the prior snapshot version when nothing was folded).
+   */
+  compact(docId: string, build: CompactBuild): Promise<number>;
   close(): Promise<void>;
 }
+
+/** Folds `prevSnapshot` + `ops` into the next snapshot, or returns null to skip. */
+export type CompactBuild = (prevSnapshot: unknown | null, ops: StoredOp[]) => unknown | null;
 
 interface DocState {
   ops: StoredOp[];
@@ -72,6 +82,22 @@ export class InMemoryDocStore implements DocStore {
 
   async saveSnapshot(docId: string, version: number, snapshot: unknown): Promise<void> {
     this.state(docId).snapshot = { version, snapshot };
+  }
+
+  async compact(docId: string, build: CompactBuild): Promise<number> {
+    const s = this.docs.get(docId);
+    if (!s) return 0;
+    const base = s.snapshot?.version ?? 0;
+    const ops = s.ops.filter((o) => o.seq > base);
+    if (ops.length === 0) return base;
+
+    const version = ops[ops.length - 1]!.seq;
+    const snapshot = build(s.snapshot?.snapshot ?? null, ops);
+    if (snapshot === null || snapshot === undefined) return base; // unrecognised type
+
+    s.snapshot = { version, snapshot };
+    s.ops = s.ops.filter((o) => o.seq > version); // prune folded ops
+    return version;
   }
 
   async close(): Promise<void> {

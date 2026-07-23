@@ -96,6 +96,8 @@ export interface LeaveMessage {
 export interface ErrorMessage {
   readonly type: "error";
   readonly message: string;
+  /** Machine-readable reason, e.g. `forbidden-read` / `forbidden-write`. */
+  readonly code?: string;
 }
 
 export type ServerMessage =

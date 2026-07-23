@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Redis } from "ioredis";
 import type { StoredOp } from "@birga/protocol";
-import type { DocStore, SnapshotRecord } from "./store.js";
+import type { DocStore, SnapshotRecord, CompactBuild } from "./store.js";
 import type { Fanout, FanoutHandler, FanoutMessage } from "./fanout.js";
 
 const FANOUT_CHANNEL = "birga:fanout";
@@ -93,6 +93,23 @@ export class RedisDocStore implements DocStore {
 
   async saveSnapshot(docId: string, version: number, snapshot: unknown): Promise<void> {
     await this.redis.set(keySnap(docId), JSON.stringify({ version, snapshot }));
+  }
+
+  async compact(docId: string, build: CompactBuild): Promise<number> {
+    const prev = await this.loadSnapshot(docId);
+    const base = prev?.version ?? 0;
+    const ops = await this.since(docId, base);
+    if (ops.length === 0) return base;
+
+    const version = ops[ops.length - 1]!.seq;
+    const snapshot = build(prev?.snapshot ?? null, ops);
+    if (snapshot === null || snapshot === undefined) return base;
+
+    // Save the snapshot first, then drop the ops we folded. A concurrent writer's
+    // op keeps a higher seq, so trimming by count is safe here (single list).
+    await this.saveSnapshot(docId, version, snapshot);
+    await this.redis.ltrim(keyOps(docId), ops.length, -1);
+    return version;
   }
 
   async close(): Promise<void> {

@@ -1,5 +1,5 @@
 import type { StoredOp } from "@birga/protocol";
-import type { DocStore, SnapshotRecord } from "./store.js";
+import type { DocStore, SnapshotRecord, CompactBuild } from "./store.js";
 
 /**
  * The minimal query surface both `pg` (`Pool`/`Client`) and PGlite satisfy.
@@ -162,10 +162,7 @@ export class PostgresDocStore implements DocStore {
    * receives the previous snapshot (or null) and the ops after it, and returns
    * the new snapshot payload. Returns the version compacted through.
    */
-  async compact(
-    docId: string,
-    build: (prevSnapshot: unknown | null, ops: StoredOp[]) => unknown,
-  ): Promise<number> {
+  async compact(docId: string, build: CompactBuild): Promise<number> {
     const prev = await this.loadSnapshot(docId);
     const base = prev?.version ?? 0;
     const ops = await this.since(docId, base);
@@ -173,6 +170,7 @@ export class PostgresDocStore implements DocStore {
 
     const version = ops[ops.length - 1]!.seq;
     const snapshot = build(prev?.snapshot ?? null, ops);
+    if (snapshot === null || snapshot === undefined) return base; // unrecognised type
 
     await this.db.query(
       `WITH snap AS (

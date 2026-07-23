@@ -10,6 +10,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@birga/crdt':
+        specifier: workspace:*
+        version: link:../../packages/crdt
       '@birga/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -17,9 +20,6 @@ importers:
         specifier: ^8.18.0
         version: 8.21.1
     devDependencies:
-      '@birga/crdt':
-        specifier: workspace:*
-        version: link:../../packages/crdt
       '@electric-sql/pglite':
         specifier: ^0.2.14
         version: 0.2.17

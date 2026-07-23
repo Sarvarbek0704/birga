@@ -86,7 +86,11 @@ export class Hub {
 
   private async onJoin(conn: Conn, msg: JoinMessage): Promise<void> {
     if (this.authorize && !(await this.authorize(msg.docId, msg.token, "read"))) {
-      this.send(conn, { type: "error", message: `not authorized to read ${msg.docId}` });
+      this.send(conn, {
+        type: "error",
+        code: "forbidden-read",
+        message: `not authorized to read ${msg.docId}`,
+      });
       return;
     }
     conn.replicaByDoc.set(msg.docId, msg.replica);
@@ -131,7 +135,11 @@ export class Hub {
     if (this.authorize) {
       const token = conn.tokenByDoc.get(msg.docId);
       if (!(await this.authorize(msg.docId, token, "write"))) {
-        this.send(conn, { type: "error", message: `not authorized to write ${msg.docId}` });
+        this.send(conn, {
+          type: "error",
+          code: "forbidden-write",
+          message: `not authorized to write ${msg.docId}`,
+        });
         return;
       }
     }
@@ -202,5 +210,10 @@ export class Hub {
   /** Live room count, for diagnostics/tests. */
   get roomCount(): number {
     return this.rooms.size;
+  }
+
+  /** Document ids with at least one connected member — the compaction targets. */
+  activeDocIds(): string[] {
+    return [...this.rooms.keys()];
   }
 }

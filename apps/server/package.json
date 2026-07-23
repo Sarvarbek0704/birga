@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@birga/crdt": "workspace:*",
     "@birga/protocol": "workspace:*",
     "ws": "^8.18.0"
   },
@@ -20,7 +21,6 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@birga/crdt": "workspace:*",
     "@electric-sql/pglite": "^0.2.14",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",

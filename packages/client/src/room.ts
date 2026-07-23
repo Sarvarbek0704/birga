@@ -12,6 +12,8 @@ export interface RoomEvents {
   presence: (presence: PresenceMap) => void;
   /** Connection status changed. */
   status: (connected: boolean) => void;
+  /** The server refused a read (join) or write; the room is now read-only. */
+  denied: (reason: "read" | "write") => void;
 }
 
 export interface RoomOptions {
@@ -60,11 +62,13 @@ export class PlainTextRoom {
   private readonly autoReconnect: boolean;
   private readonly baseDelay: number;
 
+  private denied = false;
   private readonly presenceMap = new Map<string, unknown>();
   private readonly listeners: { [K in keyof RoomEvents]: Set<RoomEvents[K]> } = {
     change: new Set(),
     presence: new Set(),
     status: new Set(),
+    denied: new Set(),
   };
 
   private loaded = false;
@@ -189,10 +193,42 @@ export class PlainTextRoom {
         if (this.presenceMap.delete(msg.replica)) this.emit("presence", this.presenceMap);
         break;
       case "error":
-        // Surface via console; callers can add richer handling later.
-        console.warn(`[birga] server error: ${msg.message}`);
+        this.onServerError(msg.code, msg.message);
         break;
     }
+  }
+
+  /**
+   * The server refused something. On a **write** denial the optimistic local
+   * edits are unauthorized, so we drop them and resync to the server's truth
+   * (rejoin fresh). On a **read** denial we have no access at all — go read-only
+   * and stop reconnecting.
+   */
+  private onServerError(code: string | undefined, message: string): void {
+    if (code === "forbidden-write") {
+      this.denied = true;
+      this.resyncFromServer();
+      this.emit("denied", "write");
+    } else if (code === "forbidden-read") {
+      this.denied = true;
+      this.emit("denied", "read");
+      this.disconnect(); // no access; don't hammer the server
+    } else {
+      console.warn(`[birga] server error: ${message}`);
+    }
+  }
+
+  /** Discard local (unconfirmed) state and rejoin to reload the server's truth. */
+  private resyncFromServer(): void {
+    this.doc = new RGA(this.replica);
+    this.head = 0;
+    this.outbox.clear();
+    if (this.connected && this.conn) {
+      this.conn.send(
+        JSON.stringify({ type: "join", docId: this.docId, replica: this.replica, token: this.token }),
+      );
+    }
+    void this.persist();
   }
 
   /** Apply a server op and mark any matching local op confirmed. */
@@ -218,10 +254,12 @@ export class PlainTextRoom {
   }
 
   insert(index: number, ch: string): void {
+    if (this.denied) return;
     this.afterLocal(this.doc.insertAt(index, ch));
   }
 
   delete(index: number): void {
+    if (this.denied) return;
     this.afterLocal(this.doc.deleteAt(index));
   }
 
@@ -231,6 +269,7 @@ export class PlainTextRoom {
    * Lets a plain `<textarea>` drive the CRDT with its full value.
    */
   setText(next: string): void {
+    if (this.denied) return;
     const cur = this.text;
     if (cur === next) return;
     let p = 0;
@@ -261,6 +300,11 @@ export class PlainTextRoom {
 
   get isConnected(): boolean {
     return this.connected;
+  }
+
+  /** True once the server has refused a read or write for this replica. */
+  get readOnly(): boolean {
+    return this.denied;
   }
 
   /** Highest server seq applied — what a reconnect passes as `since`. */
