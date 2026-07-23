@@ -40,6 +40,31 @@ importers:
         specifier: ^5.4.2
         version: 5.11.1
 
+  packages/client:
+    dependencies:
+      '@birga/crdt':
+        specifier: workspace:*
+        version: link:../crdt
+      '@birga/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+    devDependencies:
+      '@birga/server':
+        specifier: workspace:*
+        version: link:../../apps/server
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
+      ws:
+        specifier: ^8.18.0
+        version: 8.21.1
+
   packages/crdt:
     devDependencies:
       fast-check:

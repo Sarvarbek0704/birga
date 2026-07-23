@@ -180,6 +180,18 @@ export class RGA {
     return { version: 1, nodes };
   }
 
+  /**
+   * Merge a snapshot into *this* document. Unlike {@link fromSnapshot}, it keeps
+   * whatever is already here — so a client that edited offline can fold in the
+   * server's base state without losing its local ops. Idempotent.
+   */
+  mergeSnapshot(snap: Snapshot): void {
+    for (const n of snap.nodes) {
+      this.applyInsert({ type: "insert", id: n.id, parent: n.parent, value: n.value });
+      if (n.deleted) this.applyDelete({ type: "delete", id: n.id });
+    }
+  }
+
   static fromSnapshot(replica: string, snap: Snapshot): RGA {
     const doc = new RGA(replica);
     // Sort by id so parents are guaranteed present before children — purely for
