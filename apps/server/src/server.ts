@@ -1,5 +1,5 @@
 import { WebSocketServer, type WebSocket } from "ws";
-import { Hub } from "./hub.js";
+import { Hub, type Authorize } from "./hub.js";
 import { InMemoryDocStore, type DocStore } from "./store.js";
 import { LocalFanout, type Fanout } from "./fanout.js";
 
@@ -9,6 +9,8 @@ export interface ServerOptions {
   host?: string;
   store?: DocStore;
   fanout?: Fanout;
+  /** Access control. When omitted the server is fully open (default). */
+  authorize?: Authorize;
   /** Heartbeat interval (ms) for dropping dead sockets. 0 disables. */
   heartbeatMs?: number;
 }
@@ -29,7 +31,7 @@ interface Alive extends WebSocket {
 export async function startServer(options: ServerOptions = {}): Promise<RunningServer> {
   const store = options.store ?? new InMemoryDocStore();
   const fanout = options.fanout ?? new LocalFanout();
-  const hub = new Hub(store, fanout);
+  const hub = new Hub(store, fanout, options.authorize ?? null);
 
   const wss = new WebSocketServer({ port: options.port ?? 8080, host: options.host });
 

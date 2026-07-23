@@ -1,6 +1,7 @@
 import { startServer } from "./server.js";
 import { InMemoryDocStore, type DocStore } from "./store.js";
 import { LocalFanout, type Fanout } from "./fanout.js";
+import type { Authorize } from "./hub.js";
 
 /**
  * Production entry point. Single instance by default (in-memory store); set
@@ -14,6 +15,7 @@ async function main(): Promise<void> {
 
   let store: DocStore = new InMemoryDocStore();
   let fanout: Fanout = new LocalFanout();
+  let authorize: Authorize | null = null;
   let closeApi: (() => Promise<void>) | null = null;
 
   if (databaseUrl) {
@@ -35,6 +37,14 @@ async function main(): Promise<void> {
     if (secret === "dev-insecure-secret") {
       console.warn("[birga] SESSION_SECRET is unset — using an insecure dev secret.");
     }
+
+    // Opt-in: enforce share permissions on the WebSocket relay too. Unclaimed
+    // documents stay open so ad-hoc rooms keep working.
+    if (process.env["ENFORCE_PERMISSIONS"] === "1") {
+      const { makeDocumentAuthorizer } = await import("./authz.js");
+      authorize = makeDocumentAuthorizer(repo, secret);
+      console.log(`[birga] WebSocket permission enforcement enabled`);
+    }
   } else if (redisUrl) {
     // Shared op log in Redis when there's no Postgres (multi-instance).
     const { RedisDocStore } = await import("./redis.js");
@@ -48,7 +58,7 @@ async function main(): Promise<void> {
     console.log(`[birga] Redis fan-out enabled (${redisUrl})`);
   }
 
-  const server = await startServer({ port, host, store, fanout });
+  const server = await startServer({ port, host, store, fanout, authorize: authorize ?? undefined });
   console.log(`[birga] sync server listening on ws://${host ?? "localhost"}:${server.port}`);
 
   const shutdown = async (): Promise<void> => {

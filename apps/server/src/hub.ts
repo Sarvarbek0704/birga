@@ -13,9 +13,21 @@ import type { Fanout, FanoutMessage } from "./fanout.js";
 interface Conn {
   readonly socket: WebSocket;
   readonly replicaByDoc: Map<string, string>;
+  /** The auth token supplied at join time, per document (for op-time checks). */
+  readonly tokenByDoc: Map<string, string | undefined>;
 }
 
 const OPEN = 1; // WebSocket.OPEN
+
+/**
+ * Decides whether a token may `read` (join) or `write` (submit ops) a document.
+ * When no authorizer is configured the Hub is fully open (the default).
+ */
+export type Authorize = (
+  docId: string,
+  token: string | undefined,
+  need: "read" | "write",
+) => boolean | Promise<boolean>;
 
 /**
  * The relay core, independent of transport wiring. It owns rooms (the set of
@@ -33,13 +45,14 @@ export class Hub {
   constructor(
     private readonly store: DocStore,
     private readonly fanout: Fanout,
+    private readonly authorize: Authorize | null = null,
   ) {
     // Deliver peer messages to our local room members.
     this.fanout.onMessage((docId, msg) => this.broadcastLocal(docId, msg, null));
   }
 
   addConnection(socket: WebSocket): void {
-    const conn: Conn = { socket, replicaByDoc: new Map() };
+    const conn: Conn = { socket, replicaByDoc: new Map(), tokenByDoc: new Map() };
     this.conns.set(socket, conn);
     socket.on("message", (data) => {
       void this.onMessage(conn, data.toString());
@@ -72,7 +85,12 @@ export class Hub {
   }
 
   private async onJoin(conn: Conn, msg: JoinMessage): Promise<void> {
+    if (this.authorize && !(await this.authorize(msg.docId, msg.token, "read"))) {
+      this.send(conn, { type: "error", message: `not authorized to read ${msg.docId}` });
+      return;
+    }
     conn.replicaByDoc.set(msg.docId, msg.replica);
+    conn.tokenByDoc.set(msg.docId, msg.token);
     this.roomOf(msg.docId).add(conn);
 
     const head = await this.store.head(msg.docId);
@@ -109,6 +127,13 @@ export class Hub {
     if (!replica) {
       this.send(conn, { type: "error", message: `op before join for doc ${msg.docId}` });
       return;
+    }
+    if (this.authorize) {
+      const token = conn.tokenByDoc.get(msg.docId);
+      if (!(await this.authorize(msg.docId, token, "write"))) {
+        this.send(conn, { type: "error", message: `not authorized to write ${msg.docId}` });
+        return;
+      }
     }
     const stored = await this.store.append(msg.docId, msg.op, replica);
     const out: FanoutMessage = {

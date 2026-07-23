@@ -33,6 +33,8 @@ export interface JoinMessage {
   readonly docId: string;
   readonly replica: string;
   readonly since?: number;
+  /** Bearer token identifying the user, checked when the server enforces access. */
+  readonly token?: string;
 }
 
 /** Submit a local op for relay + persistence. The server stamps the replica. */
@@ -127,7 +129,9 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       if (typeof data["docId"] !== "string" || typeof data["replica"] !== "string") return null;
       const since = data["since"];
       if (since !== undefined && typeof since !== "number") return null;
-      return { type: "join", docId: data["docId"], replica: data["replica"], since };
+      const token = data["token"];
+      if (token !== undefined && typeof token !== "string") return null;
+      return { type: "join", docId: data["docId"], replica: data["replica"], since, token };
     }
     case "op": {
       if (typeof data["docId"] !== "string" || !("op" in data)) return null;

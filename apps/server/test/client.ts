@@ -94,13 +94,15 @@ export class TestClient {
     });
   }
 
-  async join(docId: string, replica: string, since?: number): Promise<void> {
+  async join(docId: string, replica: string, since?: number, token?: string): Promise<void> {
     this.docId = docId;
     this.replica = replica;
     if (!this.doc) this.doc = new RGA(replica);
     this.welcomed = false;
-    this.ws.send(JSON.stringify({ type: "join", docId, replica, since }));
-    await this.waitUntil(() => this.welcomed);
+    this.lastError = null;
+    this.ws.send(JSON.stringify({ type: "join", docId, replica, since, token }));
+    // Resolve on welcome OR on an auth error, so denied joins don't hang.
+    await this.waitUntil(() => this.welcomed || this.lastError !== null);
   }
 
   insert(index: number, ch: string): void {
