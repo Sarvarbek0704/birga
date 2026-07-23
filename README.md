@@ -79,8 +79,10 @@ REDIS_URL=redis://localhost:6379 \
 
 ## Status
 
-**Every phase of the spec's MVP scope is implemented, tested, and CI-green.**
-Full technical spec: [`docs/TZ.md`](docs/TZ.md).
+**Every phase of the spec's MVP scope is implemented and tested** — the full
+pipeline (`build · typecheck · test · web build`) passes, and CI
+([`ci.yml`](.github/workflows/ci.yml)) runs it on every push. Full technical
+spec: [`docs/TZ.md`](docs/TZ.md).
 
 | package | what it is | tests |
 | ------- | ---------- | ----- |
@@ -91,7 +93,7 @@ Full technical spec: [`docs/TZ.md`](docs/TZ.md).
 | [`@birga/web`](apps/web) | Next.js editor — plain (`@birga/crdt`) + rich (Yjs) · presence · doc list · sharing | build |
 
 **How it maps to the spec's Definition of Done (§9):** the CRDT converges under
-thousands of randomised interleavings (CI-green); two-window live edit and
+thousands of randomised interleavings (a green property suite); two-window live edit and
 offline-edit-then-reconnect converge; live cursors + presence; late joiners load
 from a snapshot on long docs (periodic compaction); and the README explains
 **why** the CRDT converges with a diagram — see the portfolio write-up,
