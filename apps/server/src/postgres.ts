@@ -69,6 +69,11 @@ export class PostgresDocStore implements DocStore {
 
   constructor(private readonly db: Queryable) {}
 
+  /** The underlying connection, so a `DocumentsRepo` can share it. */
+  get queryable(): Queryable {
+    return this.db;
+  }
+
   /** Open a production store from a connection string (lazily loads `pg`). */
   static async connect(connectionString: string): Promise<PostgresDocStore> {
     const pg = await import("pg");

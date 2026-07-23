@@ -105,6 +105,15 @@ export class DocumentsRepo {
     );
   }
 
+  /** All users with a role on the document (owner's view of sharing). */
+  async listPermissions(documentId: string): Promise<Array<{ userId: string; role: Role }>> {
+    const { rows } = await this.db.query<{ user_id: string; role: Role }>(
+      `SELECT user_id, role FROM permissions WHERE document_id = $1 ORDER BY role`,
+      [documentId],
+    );
+    return rows.map((r) => ({ userId: r.user_id, role: r.role }));
+  }
+
   async roleFor(documentId: string, userId: string): Promise<Role | null> {
     const { rows } = await this.db.query<RoleRow>(
       `SELECT role FROM permissions WHERE document_id = $1 AND user_id = $2`,
