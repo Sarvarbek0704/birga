@@ -38,10 +38,15 @@ function verify<T>(token: string, secret: string): T | null {
   }
 }
 
+/** Sign a bearer token for a specific user (deterministic — used for demo seeds). */
+export function signUser(user: User, secret: string): string {
+  return sign({ ...user, t: "user" }, secret);
+}
+
 /** Mint a fresh guest identity and a token that proves it. */
 export function issueGuest(name: string, secret: string): { token: string; user: User } {
   const user: User = { userId: randomUUID(), name };
-  return { token: sign({ ...user, t: "user" }, secret), user };
+  return { token: signUser(user, secret), user };
 }
 
 /** Verify a bearer token and return the user, or null. */

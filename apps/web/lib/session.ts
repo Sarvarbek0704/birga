@@ -60,10 +60,16 @@ export function useSession() {
     [signIn],
   );
 
+  /** Adopt an existing session (e.g. a one-click demo account). */
+  const loginWith = useCallback((s: Session): void => {
+    saveSession(s);
+    setSession(s);
+  }, []);
+
   const signOut = useCallback(() => {
     clearSession();
     setSession(null);
   }, []);
 
-  return { session, ready, signIn, ensure, signOut };
+  return { session, ready, signIn, ensure, loginWith, signOut };
 }

@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "seed": "tsx src/seed-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -22,11 +23,15 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.14",
+    "@tiptap/core": "^2.10.4",
+    "@tiptap/starter-kit": "^2.10.4",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
     "@types/ws": "^8.5.13",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "y-prosemirror": "^1.2.12",
+    "yjs": "^13.6.20"
   }
 }

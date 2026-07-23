@@ -1,7 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { DocumentsRepo, type Role } from "./documents.js";
-import { issueGuest, verifyUser, signShare, verifyShare, type User } from "./auth.js";
+import { issueGuest, verifyUser, signShare, verifyShare, signUser, type User } from "./auth.js";
+import { DEMO_USERS } from "./demo-users.js";
 
 export interface ApiOptions {
   repo: DocumentsRepo;
@@ -50,6 +51,18 @@ async function handle(req: IncomingMessage, res: ServerResponse, opts: ApiOption
     const body = await json(req);
     const name = (typeof body.name === "string" && body.name.trim().slice(0, 40)) || "Guest";
     return send(res, 200, issueGuest(name, secret));
+  }
+
+  // Public (demo only): one-click sign-in tokens for the seeded personas.
+  if (method === "GET" && path === "/api/demo/accounts") {
+    if (process.env["DEMO_ACCOUNTS"] !== "1") return send(res, 404, { error: "not found" });
+    const accounts = DEMO_USERS.map((u) => ({
+      userId: u.userId,
+      name: u.name,
+      note: u.note,
+      token: signUser({ userId: u.userId, name: u.name }, secret),
+    }));
+    return send(res, 200, { accounts });
   }
 
   // Everything else needs a valid bearer token.

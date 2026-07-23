@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError, type DocWithRole } from "@/lib/api";
+import { api, ApiError, type DocWithRole, type DemoAccount } from "@/lib/api";
 import { useSession } from "@/lib/session";
 
 function slugId(): string {
@@ -12,18 +12,29 @@ function slugId(): string {
 
 export default function Home() {
   const router = useRouter();
-  const { session, ready, signIn, signOut } = useSession();
+  const { session, ready, signIn, loginWith, signOut } = useSession();
   const [name, setName] = useState("");
+  const [demos, setDemos] = useState<DemoAccount[]>([]);
+
+  useEffect(() => {
+    // Populated only when the server runs with DEMO_ACCOUNTS=1.
+    api
+      .demoAccounts()
+      .then((r) => setDemos(r.accounts))
+      .catch(() => setDemos([]));
+  }, []);
 
   if (!ready) return <p className="text-slate-500">Loading…</p>;
 
   if (!session) {
     return (
-      <main className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Pick a display name to start collaborating. No password — this is a guest identity.
-        </p>
+      <main className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
+          <p className="mt-1 text-slate-600 dark:text-slate-400">
+            Pick a display name to start collaborating. No password — this is a guest identity.
+          </p>
+        </div>
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -44,6 +55,24 @@ export default function Home() {
             Continue
           </button>
         </form>
+
+        {demos.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-slate-200 pt-5 dark:border-slate-800">
+            <p className="text-sm text-slate-500">Or explore with a demo account:</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {demos.map((d) => (
+                <button
+                  key={d.userId}
+                  onClick={() => loginWith({ token: d.token, user: { userId: d.userId, name: d.name } })}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-left hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+                >
+                  <div className="font-medium">{d.name}</div>
+                  <div className="text-xs text-slate-500">{d.note}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     );
   }

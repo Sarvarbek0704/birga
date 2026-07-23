@@ -57,9 +57,15 @@ async function req<T>(
   return json as T;
 }
 
+export interface DemoAccount extends SessionUser {
+  note: string;
+  token: string;
+}
+
 export const api = {
   guest: (name: string) =>
     req<{ token: string; user: SessionUser }>("POST", "/api/auth/guest", { body: { name } }),
+  demoAccounts: () => req<{ accounts: DemoAccount[] }>("GET", "/api/demo/accounts"),
   listDocs: (token: string) => req<{ docs: DocWithRole[] }>("GET", "/api/docs", { token }),
   createDoc: (token: string, body: { id?: string; title?: string }) =>
     req<{ doc: DocMeta }>("POST", "/api/docs", { token, body }),

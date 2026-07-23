@@ -16,6 +16,7 @@
     "dev": "pnpm build:libs && pnpm --parallel --filter @birga/server --filter @birga/web dev",
     "dev:server": "pnpm --filter @birga/server dev",
     "dev:web": "pnpm --filter @birga/web dev",
+    "seed": "pnpm --filter @birga/server seed",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"
   }

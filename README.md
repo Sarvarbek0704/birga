@@ -77,6 +77,25 @@ REDIS_URL=redis://localhost:6379 \
   pnpm dev:server                # persistence, REST API, fan-out
 ```
 
+**Seeded demo** (a populated, role-based tour):
+
+```bash
+pnpm db:up
+export DATABASE_URL=postgres://birga:birga@localhost:5432/birga
+export SESSION_SECRET=demo-secret
+pnpm seed                        # 5 documents, 3 personas, plain + rich content
+
+# run the server with demo login + live permission enforcement
+DATABASE_URL=$DATABASE_URL SESSION_SECRET=$SESSION_SECRET \
+DEMO_ACCOUNTS=1 ENFORCE_PERMISSIONS=1 pnpm dev:server
+pnpm dev:web
+```
+
+On the sign-in screen, click **Ada**, **Ben**, or **Carol** — each sees the
+document list with their own owner/editor/viewer roles, real content in both
+editing modes, and (as a viewer) a live read-only editor that rolls back
+unauthorised edits.
+
 ## Status
 
 **Every phase of the spec's MVP scope is implemented and tested** — the full

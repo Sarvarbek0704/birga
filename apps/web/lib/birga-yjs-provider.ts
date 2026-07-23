@@ -142,7 +142,13 @@ export class BirgaYjsProvider {
   }
 
   private onMessage(data: string): void {
-    let msg: { type?: string; ops?: Array<{ op: string }>; op?: string; state?: string };
+    let msg: {
+      type?: string;
+      ops?: Array<{ op: string }>;
+      op?: string;
+      state?: string;
+      snapshot?: string | null;
+    };
     try {
       msg = JSON.parse(data);
     } catch {
@@ -150,6 +156,8 @@ export class BirgaYjsProvider {
     }
     switch (msg.type) {
       case "welcome":
+        // A base snapshot (e.g. seeded content) is a full Yjs state update.
+        if (typeof msg.snapshot === "string") Y.applyUpdate(this.doc, fromB64(msg.snapshot), this);
         for (const stored of msg.ops ?? []) Y.applyUpdate(this.doc, fromB64(stored.op), this);
         break;
       case "op":
