@@ -36,15 +36,33 @@ pnpm --filter @birga/server dev     # tsx watch, port 8080
 PORT=9000 pnpm --filter @birga/server start
 ```
 
-Single instance uses an in-memory store. Set `REDIS_URL` to scale out:
+Single instance uses an in-memory store. Two env vars scale it out:
 
 ```bash
+# durable snapshots + op log
+DATABASE_URL=postgres://user:pass@localhost:5432/birga pnpm --filter @birga/server start
+
+# pub/sub fan-out across instances (+ shared op log when no Postgres)
 REDIS_URL=redis://localhost:6379 pnpm --filter @birga/server start
 ```
 
-That enables **Redis pub/sub fan-out** (ops/awareness/leaves reach rooms on every
-instance) backed by a **shared Redis op log** (so late joiners on any instance
-catch up). Presence is Redis-only and TTL'd — never persisted.
+- `REDIS_URL` → **pub/sub fan-out** so ops/awareness/leaves reach rooms on every
+  instance. Presence is Redis-only and TTL'd — never persisted.
+- `DATABASE_URL` → **Postgres persistence** ([`postgres.ts`](src/postgres.ts)):
+  the op log and snapshots live in JSONB tables; `migrate()` runs on boot.
+
+### Persistence & compaction
+
+`PostgresDocStore` stores every op and supports **op-log compaction**: fold the
+ops after the current snapshot into a new one and prune them, atomically (a
+writable-CTE `INSERT … ON CONFLICT` + `DELETE` in one statement, so a late joiner
+never sees a gap). `compact(docId, build)` is CRDT-agnostic — `build` folds the
+prior snapshot + new ops into the next snapshot; the tests use an `@birga/crdt`
+folder and prove the document is still perfectly reconstructable afterwards.
+
+[`documents.ts`](src/documents.ts) (`DocumentsRepo`) owns document metadata and
+**share permissions** (`owner` / `editor` / `viewer`): create, list-for-user
+(with role), rename, delete (cascades), grant/revoke, and `canEdit` checks.
 
 ## Architecture
 

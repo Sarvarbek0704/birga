@@ -60,7 +60,10 @@ export class InMemoryDocStore implements DocStore {
   }
 
   async head(docId: string): Promise<number> {
-    return this.docs.get(docId)?.seq ?? 0;
+    const s = this.docs.get(docId);
+    if (!s) return 0;
+    // Floor at the snapshot version so head stays correct even if ops were pruned.
+    return Math.max(s.seq, s.snapshot?.version ?? 0);
   }
 
   async loadSnapshot(docId: string): Promise<SnapshotRecord | null> {

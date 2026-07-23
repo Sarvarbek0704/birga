@@ -10,16 +10,27 @@ async function main(): Promise<void> {
   const port = Number(process.env["PORT"] ?? 8080);
   const host = process.env["HOST"];
   const redisUrl = process.env["REDIS_URL"];
+  const databaseUrl = process.env["DATABASE_URL"];
 
   let store: DocStore = new InMemoryDocStore();
   let fanout: Fanout = new LocalFanout();
 
-  if (redisUrl) {
-    // Imported lazily so the server runs with zero Redis deps when unset.
-    const { RedisDocStore, RedisFanout } = await import("./redis.js");
+  if (databaseUrl) {
+    // Durable snapshots + op log in Postgres (lazily loads `pg`).
+    const { PostgresDocStore } = await import("./postgres.js");
+    store = await PostgresDocStore.connect(databaseUrl);
+    console.log(`[birga] Postgres persistence enabled`);
+  } else if (redisUrl) {
+    // Shared op log in Redis when there's no Postgres (multi-instance).
+    const { RedisDocStore } = await import("./redis.js");
     store = new RedisDocStore(redisUrl);
+  }
+
+  if (redisUrl) {
+    // Redis pub/sub fan-out lets multiple instances share document rooms.
+    const { RedisFanout } = await import("./redis.js");
     fanout = new RedisFanout(redisUrl);
-    console.log(`[birga] Redis fan-out + shared store enabled (${redisUrl})`);
+    console.log(`[birga] Redis fan-out enabled (${redisUrl})`);
   }
 
   const server = await startServer({ port, host, store, fanout });
