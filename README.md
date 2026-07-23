@@ -42,17 +42,19 @@ TypeScript · a hand-written CRDT core (own package) · WebSocket sync server (N
 | ------- | ---------- | ----- |
 | [`@birga/crdt`](packages/crdt) | from-scratch RGA sequence CRDT + convergence property tests | ✅ 16 tests |
 | [`@birga/protocol`](packages/protocol) | CRDT-agnostic wire protocol | ✅ |
-| [`@birga/server`](apps/server) | WS sync server · Redis fan-out · Postgres persistence + compaction · documents/permissions | ✅ 22 tests |
+| [`@birga/server`](apps/server) | WS sync server · Redis fan-out · Postgres persistence + compaction · REST API (auth, docs, share links) | ✅ 29 tests |
 | [`@birga/client`](packages/client) | offline-first sync engine (CRDT ⇆ protocol) | ✅ 5 tests |
-| [`@birga/web`](apps/web) | Next.js editor — plain text (`@birga/crdt`) + rich text (Yjs) | ✅ builds |
+| [`@birga/web`](apps/web) | Next.js editor — plain text (`@birga/crdt`) + rich text (Yjs) · doc list · sharing | ✅ builds |
 
 ```bash
 pnpm install
-pnpm -r build && pnpm -r test    # 43 tests green
+pnpm -r build && pnpm -r test    # 50 tests green
 ```
 
-**Remaining:** HTTP API + doc-list UI on top of `DocumentsRepo`, and auth (the
-persistence, compaction and permission *mechanisms* are built and tested).
+Every phase of the spec's MVP scope is implemented: from-scratch CRDT, sync
+server, editor (both CRDT paths), persistence + compaction, and documents with
+guest auth + share links. Remaining polish: real accounts (guest identities
+today) and richer conflict-free rich-text schemas.
 
 ## License
 

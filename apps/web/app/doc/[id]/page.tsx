@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlainTextEditor } from "@/components/PlainTextEditor";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { ShareControl } from "@/components/ShareControl";
 
 type Mode = "plain" | "rich";
 
@@ -13,11 +14,12 @@ export default function DocPage({ params }: { params: { id: string } }) {
   return (
     <main className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold">
             <span className="text-slate-400">doc / </span>
             {docId}
           </h1>
+          <ShareControl docId={docId} />
         </div>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-300 text-sm dark:border-slate-700">
           <button
