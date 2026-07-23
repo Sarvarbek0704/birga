@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Minimal rich-text content styling (in lieu of the typography plugin). */
+.prose-birga :where(h1) {
+  @apply mb-3 mt-4 text-2xl font-bold;
+}
+.prose-birga :where(h2) {
+  @apply mb-2 mt-4 text-xl font-semibold;
+}
+.prose-birga :where(p) {
+  @apply my-2 leading-relaxed;
+}
+.prose-birga :where(ul) {
+  @apply my-2 list-disc pl-6;
+}
+.prose-birga :where(ol) {
+  @apply my-2 list-decimal pl-6;
+}
+.prose-birga :where(code) {
+  @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm dark:bg-slate-800;
+}
+.prose-birga :where(pre) {
+  @apply my-3 overflow-x-auto rounded-lg bg-slate-900 p-3 text-sm text-slate-100;
+}
+.prose-birga :where(blockquote) {
+  @apply my-2 border-l-4 border-slate-300 pl-4 italic dark:border-slate-700;
+}
+
+/* Remote collaborator carets (y-prosemirror). */
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid #0d0d0d;
+  border-right: 1px solid #0d0d0d;
+  word-break: normal;
+  pointer-events: none;
+}
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+  color: #fff;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem 0.25rem 0.25rem 0;
+  user-select: none;
+}

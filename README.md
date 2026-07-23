@@ -36,7 +36,23 @@ TypeScript · a hand-written CRDT core (own package) · WebSocket sync server (N
 
 ## Status
 
-📋 **Spec-first.** Full technical spec: [`docs/TZ.md`](docs/TZ.md).
+🛠️ **In progress.** Full technical spec: [`docs/TZ.md`](docs/TZ.md).
+
+| package | what it is | state |
+| ------- | ---------- | ----- |
+| [`@birga/crdt`](packages/crdt) | from-scratch RGA sequence CRDT + convergence property tests | ✅ 16 tests |
+| [`@birga/protocol`](packages/protocol) | CRDT-agnostic wire protocol | ✅ |
+| [`@birga/server`](apps/server) | WebSocket sync server, persistence, reconnect, Redis fan-out | ✅ 8 tests |
+| [`@birga/client`](packages/client) | offline-first sync engine (CRDT ⇆ protocol) | ✅ 5 tests |
+| [`@birga/web`](apps/web) | Next.js editor — plain text (`@birga/crdt`) + rich text (Yjs) | ✅ builds |
+
+```bash
+pnpm install
+pnpm -r build && pnpm -r test    # 29 tests green
+```
+
+**Remaining (Phase 4):** Postgres snapshots + op-log compaction, document list,
+share permissions.
 
 ## License
 
