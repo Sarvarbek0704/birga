@@ -64,6 +64,14 @@ folder and prove the document is still perfectly reconstructable afterwards.
 **share permissions** (`owner` / `editor` / `viewer`): create, list-for-user
 (with role), rename, delete (cascades), grant/revoke, and `canEdit` checks.
 
+### WebSocket access control (opt-in)
+
+By default the relay is open. Set `ENFORCE_PERMISSIONS=1` (with `DATABASE_URL`)
+to check the bearer token clients send in `join`: read is required to join,
+write to submit ops ([`authz.ts`](src/authz.ts)). **Unclaimed** documents (no
+permission rows) stay open so ad-hoc rooms keep working; once a document is
+created/shared, its roles apply — across both `plain:` and `rich:` editor rooms.
+
 ## Architecture
 
 - [`store.ts`](src/store.ts) — `DocStore` interface + `InMemoryDocStore`.

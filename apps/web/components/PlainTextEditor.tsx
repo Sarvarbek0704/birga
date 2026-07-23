@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlainTextRoom, IndexedDBStorage, webSocketConnection } from "@birga/client";
 import { wsUrl } from "@/lib/config";
 import { getIdentity, newReplicaId, type Identity } from "@/lib/identity";
+import { loadSession } from "@/lib/session";
 import { PresenceBar, type Peer } from "./PresenceBar";
 
 interface RemoteCursor {
@@ -29,6 +30,7 @@ export function PlainTextEditor({ docId }: { docId: string }) {
       replica: newReplicaId(),
       connect: () => webSocketConnection(wsUrl()),
       storage: new IndexedDBStorage(),
+      token: loadSession()?.token,
     });
     roomRef.current = room;
 

@@ -23,6 +23,8 @@ export interface BirgaYjsProviderOptions {
   docId: string;
   doc: Y.Doc;
   user: Identity;
+  /** Bearer token sent with join, used when the server enforces permissions. */
+  token?: string;
 }
 
 const toB64 = (bytes: Uint8Array): string => {
@@ -47,12 +49,14 @@ export class BirgaYjsProvider {
   private destroyed = false;
   private readonly url: string;
   private readonly docId: string;
+  private readonly token: string | undefined;
   private readonly statusCbs = new Set<(connected: boolean) => void>();
 
   constructor(opts: BirgaYjsProviderOptions) {
     this.doc = opts.doc;
     this.url = opts.url;
     this.docId = opts.docId;
+    this.token = opts.token;
     this.awareness = new Awareness(this.doc);
     this.awareness.setLocalStateField("user", opts.user);
 
@@ -100,7 +104,12 @@ export class BirgaYjsProvider {
       if (this.conn !== conn) return;
       this.connected = true;
       this.emitStatus(true);
-      this.rawSend(conn, { type: "join", docId: this.docId, replica: String(this.doc.clientID) });
+      this.rawSend(conn, {
+        type: "join",
+        docId: this.docId,
+        replica: String(this.doc.clientID),
+        token: this.token,
+      });
       // Push our current state (possibly restored from IndexedDB while offline)
       // so peers merge it, plus our awareness.
       this.rawSend(conn, {

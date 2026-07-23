@@ -20,6 +20,8 @@ export interface RoomOptions {
   /** Factory invoked on every (re)connect. Lets the room reopen a fresh socket. */
   connect: () => Connection;
   storage?: Storage;
+  /** Bearer token sent with join, used when the server enforces permissions. */
+  token?: string;
   /** Reconnect automatically on drop. Disable in tests for determinism. */
   autoReconnect?: boolean;
   /** Base reconnect delay (ms); grows with consecutive failures, capped at 10s. */
@@ -49,6 +51,7 @@ export class PlainTextRoom {
   private readonly outbox = new Map<string, Op>();
 
   private readonly storage: Storage;
+  private readonly token: string | undefined;
   private readonly makeConnection: () => Connection;
   private conn: Connection | null = null;
   private connected = false;
@@ -71,6 +74,7 @@ export class PlainTextRoom {
     this.replica = opts.replica;
     this.makeConnection = opts.connect;
     this.storage = opts.storage ?? new MemoryStorage();
+    this.token = opts.token;
     this.autoReconnect = opts.autoReconnect ?? true;
     this.baseDelay = opts.reconnectDelayMs ?? 500;
     this.doc = new RGA(opts.replica);
@@ -125,7 +129,15 @@ export class PlainTextRoom {
     // Fresh join (no prior sync) omits `since` to receive a snapshot; a
     // reconnect passes the last applied seq to fetch only what it missed.
     const since = this.head > 0 ? this.head : undefined;
-    this.conn?.send(JSON.stringify({ type: "join", docId: this.docId, replica: this.replica, since }));
+    this.conn?.send(
+      JSON.stringify({
+        type: "join",
+        docId: this.docId,
+        replica: this.replica,
+        since,
+        token: this.token,
+      }),
+    );
     this.emit("status", true);
   }
 

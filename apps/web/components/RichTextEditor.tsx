@@ -10,6 +10,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { BirgaYjsProvider } from "@/lib/birga-yjs-provider";
 import { wsUrl } from "@/lib/config";
 import { getIdentity } from "@/lib/identity";
+import { loadSession } from "@/lib/session";
 
 /**
  * Rich-text collaborative editor on the **production path**: TipTap/ProseMirror
@@ -25,7 +26,13 @@ export function RichTextEditor({ docId }: { docId: string }) {
 
   useEffect(() => {
     const persistence = new IndexeddbPersistence(`birga:rich:${docId}`, ydoc);
-    const p = new BirgaYjsProvider({ url: wsUrl(), docId, doc: ydoc, user: identity });
+    const p = new BirgaYjsProvider({
+      url: wsUrl(),
+      docId,
+      doc: ydoc,
+      user: identity,
+      token: loadSession()?.token,
+    });
     const off = p.onStatus(setConnected);
     setProvider(p);
     return () => {
